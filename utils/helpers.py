@@ -6,8 +6,8 @@ import json
 
 def init_session_state():
     """Initialize all session state variables"""
-    if 'user' not in st.session_state:
-        st.session_state.user = None
+    if 'user_id' not in st.session_state:
+        st.session_state.user_id = f"user_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     
     if 'conversation_history' not in st.session_state:
         st.session_state.conversation_history = []
@@ -26,95 +26,11 @@ def init_session_state():
             'created_at': datetime.now()
         }
     
-    if 'user_stats' not in st.session_state:
-        st.session_state.user_stats = {
-            'total_conversations': 0,
-            'total_mood_entries': 0,
-            'current_streak': 0,
-            'exercises_completed': 0
-        }
-    
     if 'mood_history' not in st.session_state:
         st.session_state.mood_history = []
     
     if 'exercise_completions' not in st.session_state:
         st.session_state.exercise_completions = []
-
-def get_current_user():
-    """Get current authenticated user"""
-    return st.session_state.get('user', None)
-
-def is_demo_user():
-    """Check if current user is a demo user"""
-    user = get_current_user()
-    return user and user.get('isDemo', False)
-
-def get_user_id():
-    """Get current user ID"""
-    user = get_current_user()
-    return user['uid'] if user else None
-
-def get_user_display_name():
-    """Get user's display name"""
-    user = get_current_user()
-    if user:
-        return user.get('displayName', 'Friend')
-    return st.session_state.user_profile.get('name', 'Friend')
-
-def load_user_data_from_firebase(firebase_service):
-    """Load user data from Firebase"""
-    user_id = get_user_id()
-    if not user_id or is_demo_user():
-        return False
-    
-    try:
-        # Load conversations
-        conversations = firebase_service.get_user_conversations(user_id, limit=50)
-        if conversations:
-            # Convert Firebase conversations to session format
-            st.session_state.conversation_history = []
-            for conv in reversed(conversations):  # Reverse to get chronological order
-                st.session_state.conversation_history.append({
-                    'role': 'user',
-                    'content': conv['user_message'],
-                    'timestamp': conv['timestamp']
-                })
-                st.session_state.conversation_history.append({
-                    'role': 'assistant',
-                    'content': conv['ai_response'],
-                    'timestamp': conv['timestamp'],
-                    'mood_detected': conv.get('mood_detected', 'neutral'),
-                    'events': conv.get('events', [])
-                })
-        
-        # Load mood analytics
-        mood_data = firebase_service.get_mood_analytics(user_id, days=30)
-        if mood_data and mood_data.get('mood_history'):
-            st.session_state.mood_history = mood_data['mood_history']
-        
-        # Load user profile
-        profile = firebase_service.get_user_profile(user_id)
-        if profile:
-            st.session_state.user_profile = profile.get('preferences', st.session_state.user_profile)
-            st.session_state.user_stats = profile.get('stats', st.session_state.user_stats)
-        
-        return True
-        
-    except Exception as e:
-        print(f"Error loading user data from Firebase: {e}")
-        return False
-
-def save_user_profile_to_firebase(firebase_service, profile_data):
-    """Save user profile to Firebase"""
-    user_id = get_user_id()
-    if not user_id or is_demo_user():
-        return False
-    
-    try:
-        return firebase_service.update_user_preferences(user_id, profile_data)
-    except Exception as e:
-        print(f"Error saving profile to Firebase: {e}")
-        return False
 
 def get_mood_emoji(mood):
     """Return emoji for given mood"""
@@ -354,28 +270,6 @@ def get_exercise_for_mood(mood):
     
     return exercises.get(mood, exercises['neutral'])
 
-def save_exercise_completion(firebase_service, exercise_data):
-    """Save exercise completion to Firebase or session state"""
-    user_id = get_user_id()
-    
-    if user_id and not is_demo_user():
-        # Save to Firebase
-        return firebase_service.save_exercise_completion(user_id, exercise_data)
-    else:
-        # Save to session state for demo users
-        if 'exercise_completions' not in st.session_state:
-            st.session_state.exercise_completions = []
-        
-        exercise_data['timestamp'] = datetime.now()
-        st.session_state.exercise_completions.append(exercise_data)
-        
-        # Update stats
-        if 'user_stats' not in st.session_state:
-            st.session_state.user_stats = {'exercises_completed': 0}
-        st.session_state.user_stats['exercises_completed'] += 1
-        
-        return True
-
 def calculate_mood_streak():
     """Calculate current positive mood streak"""
     if 'mood_history' not in st.session_state or not st.session_state.mood_history:
@@ -392,8 +286,8 @@ def calculate_mood_streak():
 
 def get_personalized_greeting():
     """Generate personalized greeting based on user data"""
-    user = get_current_user()
-    name = get_user_display_name()
+    profile = st.session_state.get('user_profile', {})
+    name = profile.get('name', 'Friend')
     current_mood = st.session_state.get('current_mood', 'neutral')
     
     # Time-based greeting
@@ -416,10 +310,7 @@ def get_personalized_greeting():
     
     mood_addition = mood_additions.get(current_mood, mood_additions['neutral'])
     
-    if user and user.get('isDemo'):
-        return f"{time_greeting}, {name}! {mood_addition} What's on your mind today? (Demo Mode)"
-    else:
-        return f"{time_greeting}, {name}! {mood_addition} What's on your mind today?"
+    return f"{time_greeting}, {name}! {mood_addition} What's on your mind today?"
 
 def format_timestamp(timestamp):
     """Format timestamp for display"""
@@ -440,75 +331,53 @@ def format_timestamp(timestamp):
     else:
         return "Just now"
 
-def save_mood_entry(mood, description="", firebase_service=None):
-    """Save mood entry to Firebase or session state"""
-    user_id = get_user_id()
+def save_mood_entry(mood, description=""):
+    """Save mood entry to session state"""
+    if 'mood_history' not in st.session_state:
+        st.session_state.mood_history = []
     
-    if user_id and not is_demo_user() and firebase_service:
-        # Save to Firebase
-        return firebase_service.save_mood_entry(user_id, mood, description)
-    else:
-        # Save to session state for demo users
-        if 'mood_history' not in st.session_state:
-            st.session_state.mood_history = []
-        
-        mood_entry = {
-            'mood': mood,
-            'description': description,
-            'timestamp': datetime.now(),
-            'date': datetime.now().date().isoformat()
-        }
-        
-        st.session_state.mood_history.append(mood_entry)
-        
-        # Keep only last 100 entries
-        if len(st.session_state.mood_history) > 100:
-            st.session_state.mood_history = st.session_state.mood_history[-100:]
-        
-        # Update stats
-        if 'user_stats' not in st.session_state:
-            st.session_state.user_stats = {'total_mood_entries': 0}
-        st.session_state.user_stats['total_mood_entries'] += 1
-        
-        return True
+    mood_entry = {
+        'mood': mood,
+        'description': description,
+        'timestamp': datetime.now(),
+        'date': datetime.now().date().isoformat()
+    }
+    
+    st.session_state.mood_history.append(mood_entry)
+    
+    # Keep only last 100 entries
+    if len(st.session_state.mood_history) > 100:
+        st.session_state.mood_history = st.session_state.mood_history[-100:]
 
-def get_mood_analytics(firebase_service=None):
-    """Calculate mood analytics from session data or Firebase"""
-    user_id = get_user_id()
+def get_mood_analytics():
+    """Calculate mood analytics from session data"""
+    if 'mood_history' not in st.session_state:
+        return {}
     
-    if user_id and not is_demo_user() and firebase_service:
-        # Get from Firebase
-        return firebase_service.get_mood_analytics(user_id, days=30)
-    else:
-        # Calculate from session state
-        if 'mood_history' not in st.session_state:
-            return {'total_entries': 0, 'mood_distribution': {}}
-        
-        moods = st.session_state.mood_history
-        
-        if not moods:
-            return {'total_entries': 0, 'mood_distribution': {}}
-        
-        # Calculate distribution
-        mood_counts = {}
-        for entry in moods:
-            mood = entry.get('mood', 'neutral')
-            mood_counts[mood] = mood_counts.get(mood, 0) + 1
-        
-        # Calculate recent trend (last 7 days)
-        week_ago = datetime.now() - timedelta(days=7)
-        recent_moods = [
-            entry for entry in moods 
-            if entry.get('timestamp', datetime.min) >= week_ago
-        ]
-        
-        return {
-            'total_entries': len(moods),
-            'mood_distribution': mood_counts,
-            'recent_moods': recent_moods[-7:],  # Last 7 entries
-            'current_streak': calculate_mood_streak(),
-            'mood_history': moods
-        }
+    moods = st.session_state.mood_history
+    
+    if not moods:
+        return {'total_entries': 0, 'mood_distribution': {}}
+    
+    # Calculate distribution
+    mood_counts = {}
+    for entry in moods:
+        mood = entry.get('mood', 'neutral')
+        mood_counts[mood] = mood_counts.get(mood, 0) + 1
+    
+    # Calculate recent trend (last 7 days)
+    week_ago = datetime.now() - timedelta(days=7)
+    recent_moods = [
+        entry for entry in moods 
+        if entry.get('timestamp', datetime.min) >= week_ago
+    ]
+    
+    return {
+        'total_entries': len(moods),
+        'mood_distribution': mood_counts,
+        'recent_moods': recent_moods[-7:],  # Last 7 entries
+        'current_streak': calculate_mood_streak()
+    }
 
 def is_crisis_situation(text):
     """Detect if text indicates a mental health crisis"""
@@ -529,48 +398,24 @@ def get_crisis_resources():
         'message': 'If you\'re having thoughts of self-harm, please reach out for immediate help. You matter, and support is available 24/7.'
     }
 
-def export_user_data(firebase_service=None):
+def export_user_data():
     """Export all user data for download"""
-    user_id = get_user_id()
+    export_data = {
+        'profile': st.session_state.get('user_profile', {}),
+        'conversation_history': st.session_state.get('conversation_history', []),
+        'mood_history': st.session_state.get('mood_history', []),
+        'exercise_completions': st.session_state.get('exercise_completions', []),
+        'export_timestamp': datetime.now().isoformat(),
+        'app_version': '1.0.0'
+    }
     
-    if user_id and not is_demo_user() and firebase_service:
-        # Export from Firebase
-        return firebase_service.export_user_data(user_id)
-    else:
-        # Export from session state
-        export_data = {
-            'user': st.session_state.get('user', {}),
-            'profile': st.session_state.get('user_profile', {}),
-            'conversation_history': st.session_state.get('conversation_history', []),
-            'mood_history': st.session_state.get('mood_history', []),
-            'exercise_completions': st.session_state.get('exercise_completions', []),
-            'user_stats': st.session_state.get('user_stats', {}),
-            'export_timestamp': datetime.now().isoformat(),
-            'app_version': '1.0.0',
-            'data_source': 'demo_mode' if is_demo_user() else 'session_state'
-        }
-        
-        return export_data
-
-def delete_user_data(firebase_service=None):
-    """Delete all user data (GDPR compliance)"""
-    user_id = get_user_id()
+    # Convert datetime objects to strings for JSON serialization
+    def serialize_datetime(obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
     
-    if user_id and not is_demo_user() and firebase_service:
-        # Delete from Firebase
-        return firebase_service.delete_user_data(user_id)
-    else:
-        # Clear session state
-        keys_to_clear = [
-            'conversation_history', 'mood_history', 'exercise_completions',
-            'user_profile', 'user_stats', 'current_mood'
-        ]
-        
-        for key in keys_to_clear:
-            if key in st.session_state:
-                del st.session_state[key]
-        
-        return True
+    return json.dumps(export_data, indent=2, default=serialize_datetime)
 
 def validate_input(text, max_length=1000):
     """Validate user input"""
@@ -609,71 +454,3 @@ def should_suggest_exercise(mood, recent_messages):
         return any(indicator in recent_text.lower() for indicator in stress_indicators)
     
     return False
-
-def sync_session_with_firebase(firebase_service):
-    """Sync session state with Firebase data"""
-    user_id = get_user_id()
-    if not user_id or is_demo_user():
-        return False
-    
-    try:
-        # Load fresh data from Firebase
-        load_user_data_from_firebase(firebase_service)
-        return True
-    except Exception as e:
-        print(f"Error syncing with Firebase: {e}")
-        return False
-
-def get_user_timezone():
-    """Get user's timezone (placeholder for future implementation)"""
-    # For now, return default timezone
-    # In future, this could be detected from browser or user settings
-    return "UTC"
-
-def format_user_stats():
-    """Format user statistics for display"""
-    stats = st.session_state.get('user_stats', {})
-    
-    return {
-        'conversations': stats.get('total_conversations', 0),
-        'mood_entries': stats.get('total_mood_entries', 0),
-        'streak': stats.get('current_streak', 0),
-        'exercises': stats.get('exercises_completed', 0)
-    }
-
-def update_user_activity():
-    """Update user's last activity timestamp"""
-    user_id = get_user_id()
-    if user_id and not is_demo_user():
-        # This would update last_activity in Firebase
-        # Implementation depends on your Firebase service structure
-        pass
-
-def get_app_version():
-    """Get current app version"""
-    return "1.0.0"
-
-def is_first_time_user():
-    """Check if this is user's first time using the app"""
-    user = get_current_user()
-    if not user:
-        return False
-    
-    # Check if user has any conversation history
-    return len(st.session_state.get('conversation_history', [])) == 0
-
-def show_welcome_message():
-    """Show welcome message for new users"""
-    if is_first_time_user():
-        return f"""
-        Welcome to MindMate, {get_user_display_name()}! 🌟
-        
-        I'm your AI mental health companion, and I'm here to:
-        • Listen to your thoughts and feelings without judgment
-        • Help you track your mood and emotional patterns
-        • Suggest personalized wellness exercises
-        • Remember our conversations to provide better support
-        
-        Your privacy and wellbeing are my top priorities. Let's start this journey together!
-        """
-    return None
