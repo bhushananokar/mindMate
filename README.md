@@ -1,21 +1,21 @@
+# 🧠 MindMate - A Streamlit AI Wellness Assistant
 
+**MindMate** is a mental wellness assistant built with **Streamlit** and powered by **Google's Gemini AI**. It provides a safe and interactive space for users to engage in supportive conversations, access mental exercises, and track their emotional well-being. User authentication is handled securely through **Google Firebase**.
 
-## 🧠 MindMate - A Streamlit AI Wellness Assistant
-
-MindMate is a mental wellness assistant built with Streamlit and powered by Google's Gemini AI. It provides a safe and interactive space for users to engage in supportive conversations, access mental exercises, and track their emotional well-being. User authentication is handled securely through Google Firebase.
+---
 
 ## 📋 Features
 
-💬 Conversational Chat: Engage with the Gemini-powered AI for support and conversation.
+- 💬 **Conversational Chat**: Engage with the Gemini-powered AI for support and conversation.  
+- 🧘 **Guided Exercises**: Access a collection of mental wellness exercises.  
+- 📊 **Analytics**: Track your mood and progress over time *(feature in development)*.  
+- 👤 **User Profile**: Secure user authentication and profile management via Firebase.
 
-🧘 Guided Exercises: Access a collection of mental wellness exercises.
-
-📊 Analytics: Track your mood and progress over time (feature in development).
-
-👤 User Profile: Secure user authentication and profile management via Firebase (Feature in development)
+---
 
 ## 📂 Project Structure
-Generated code
+
+```
 mindmate-streamlit/
 ├── app.py                  # Main Streamlit app
 ├── requirements.txt        # Dependencies
@@ -33,75 +33,61 @@ mindmate-streamlit/
 └── utils/
     ├── __init__.py
     └── helpers.py
+```
 
-##🚀 Getting Started
+---
 
-Follow these instructions to get a local copy up and running.
+## 🚀 Getting Started
 
-## Prerequisites
+### ✅ Prerequisites
 
-Python 3.8+ and Pip
+- Python 3.8+
+- Pip
+- A Google account with access to the Gemini API
+- A Google Firebase project with Authentication service enabled
 
-A Google account with access to the Gemini API.
+---
 
-A Google Firebase project with the Authentication service enabled.
+## 🛠 Installation & Configuration
 
-Installation & Configuration
+### 1. Clone the Repository
 
-Clone the repository
+```bash
+git clone https://github.com/bhushananokar/mindMate.git
+cd mindMate
+```
 
-Generated sh
-git clone https://github.com/your-username/mindmate-streamlit.git
-cd mindmate-streamlit
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Sh
-IGNORE_WHEN_COPYING_END
+### 2. Create a Virtual Environment (Recommended)
 
-Create a virtual environment (Recommended)
-
-Generated sh
-# For Windows
+```bash
+# Windows
 python -m venv venv
-.\venv\Scripts\Activate
+.\venv\Scripts\activate
 
-# For macOS/Linux
+# macOS/Linux
 python3 -m venv venv
 source venv/bin/activate
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Sh
-IGNORE_WHEN_COPYING_END
+```
 
-Install dependencies
+### 3. Install Dependencies
 
-Generated sh
+```bash
 pip install -r requirements.txt
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Sh
-IGNORE_WHEN_COPYING_END
+```
 
-Set up Environment Variables
-Create a file named .env in the root directory of the project and add the following configuration.
+---
 
-Important: You must replace the placeholder values with your actual credentials.
+### 4. Set Up Environment Variables
 
-Generated dotenv
+Create a `.env` file in the root directory and add the following (replace placeholders with your actual credentials):
+
+```env
 # Gemini AI API Key
-GEMINI_API_KEY=AIzaSyB4YsVZrGEFdBZQzyLvMu0Oae4BlXedlks
+GEMINI_API_KEY=your_gemini_api_key_here
 
 # Firebase Configuration
-# Find this in your Firebase project settings
-FIREBASE_PROJECT_ID=project1-88048
-# The full, absolute path to the service account key you downloaded from Firebase
-FIREBASE_PRIVATE_KEY_PATH=C:\Users\Bhushan\Downloads\project1-88048-firebase-adminsdk-fbsvc-c906bb898f.json
+FIREBASE_PROJECT_ID=your_firebase_project_id
+FIREBASE_PRIVATE_KEY_PATH=/absolute/path/to/your/firebase-private-key.json
 
 # Flask Configuration (if needed)
 FLASK_SECRET_KEY=your_super_secret_key_here_change_this_in_production
@@ -111,28 +97,40 @@ FLASK_ENV=development
 APP_NAME=MindMate
 APP_VERSION=1.0.0
 DEBUG=True
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Dotenv
-IGNORE_WHEN_COPYING_END
+```
 
-GEMINI_API_KEY: Get this from Google AI Studio.
+> 🔐 **Note**:
+> - `GEMINI_API_KEY`: Get from [Google AI Studio](https://makersuite.google.com/).
+> - `FIREBASE_PRIVATE_KEY_PATH`: In Firebase console → Project Settings → Service accounts → Generate private key.
 
-FIREBASE_PRIVATE_KEY_PATH: Go to your Firebase project -> Project Settings -> Service accounts -> Generate new private key. Make sure the path is correct for your system.
+---
 
-⚙️ Usage
+## ⚙️ Usage
 
-Once the dependencies are installed and your .env file is configured, run the Streamlit application from the root directory:
+Run the Streamlit app from the root folder:
 
-Generated sh
+```bash
 streamlit run app.py
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Sh
-IGNORE_WHEN_COPYING_END
+```
 
-The application will open in a new tab in your default web browser.
+The application will open in your default browser.
+
+---
+
+## 📌 License
+
+This project is for educational and wellness use. Please check licensing terms before commercial use.
+
+---
+
+## 🤝 Contributions
+
+Pull requests are welcome! Feel free to open issues or suggest features.
+
+---
+
+## 🙌 Acknowledgements
+
+- [Streamlit](https://streamlit.io)
+- [Google Firebase](https://firebase.google.com)
+- [Gemini AI](https://ai.google.dev)
